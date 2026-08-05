@@ -12,7 +12,7 @@ It is deliberately designed **not** to hide automation, bypass CAPTCHA/OTP, defe
 - Address setup, cart creation, coupon preview/apply, test COD, and idempotent order creation.
 - Rolling 24-hour account order limits in SQLite.
 - Structured JSONL logs.
-- Telegram deal alerts.
+- Telegram deal alerts and an authenticated Telegram command bot.
 - Exponential-backoff retries.
 - Ctrl+C/SIGTERM graceful shutdown.
 - Built-in mock commerce API for end-to-end local testing.
@@ -44,6 +44,31 @@ The compatibility entry point also works:
 ```bash
 python stealth_flash_qa.py --config config.json
 ```
+
+## Telegram auto-order controller
+
+Create a bot with BotFather, obtain your numeric Telegram chat ID, and enable the controller in `config.json`:
+
+```json
+{
+  "telegram": {
+    "bot_token": "YOUR_BOT_TOKEN",
+    "chat_id": "YOUR_CHAT_ID",
+    "command_bot_enabled": true,
+    "poll_timeout_seconds": 20
+  }
+}
+```
+
+Only the configured chat ID can issue commands. Available commands:
+
+- `/status` — show harness state, dry-run mode, account count, products, and active blitzes.
+- `/products` — list configured staging products and thresholds.
+- `/trigger sku-1` — immediately launch the existing bounded staging checkout workflow.
+- `/stop` — request graceful shutdown.
+- `/help` — show command help.
+
+`/trigger` does not bypass any safety guard. It uses the same allowlisted staging API, test accounts, per-account limits, concurrency limits, SQLite tracking, and dry-run setting as automatic deal triggers.
 
 ## Execution mode
 
@@ -82,11 +107,12 @@ See `src/flash_sale_qa/mock_store.py` for a complete reference implementation.
 - Known live Nykaa, Myntra, Tira, and Mamaearth hosts are blocked.
 - Quantity is capped at 10 per workflow.
 - Concurrency, requests per second, and account limits have hard upper bounds.
+- Telegram commands are ignored unless they come from the configured chat ID.
 
 ## Tests and lint
 
 ```bash
-python -m pip install -r requirements-dev.txt
+python -m pip install -e ".[dev]"
 ruff check .
 pytest -q
 ```
