@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 
 from .client import StagingClient
@@ -73,13 +74,11 @@ class FlashSaleHarness:
                     error_type=type(error).__name__,
                 )
 
-            try:
+            with contextlib.suppress(TimeoutError):
                 await asyncio.wait_for(
                     self.stop_event.wait(),
                     timeout=self.config.monitor_interval_seconds,
                 )
-            except TimeoutError:
-                pass
 
     async def run_account(self, account: Account, rule: ProductRule) -> None:
         if self.stop_event.is_set():
@@ -133,4 +132,9 @@ class FlashSaleHarness:
         for task in monitors:
             task.cancel()
         await asyncio.gather(*monitors, return_exceptions=True)
-        log_event(self.logger, logging.INFO, "harness_stopped", "Graceful shutdown completed")
+        log_event(
+            self.logger,
+            logging.INFO,
+            "harness_stopped",
+            "Graceful shutdown completed",
+        )
