@@ -32,12 +32,16 @@ class Address:
     country: str = "IN"
 
     @classmethod
-    def from_dict(cls, value: dict[str, Any]) -> "Address":
+    def from_dict(cls, value: dict[str, Any]) -> Address:
         required = ("name", "line1", "city", "state", "postal_code", "phone")
         missing = [key for key in required if not str(value.get(key, "")).strip()]
         if missing:
             raise ConfigurationError(f"Address missing fields: {', '.join(missing)}")
-        return cls(**{field.name: value.get(field.name, field.default) for field in dataclasses.fields(cls)})
+        fields = {
+            field.name: value.get(field.name, field.default)
+            for field in dataclasses.fields(cls)
+        }
+        return cls(**fields)
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -48,7 +52,7 @@ class Account:
     test_account: bool = True
 
     @classmethod
-    def from_dict(cls, value: dict[str, Any]) -> "Account":
+    def from_dict(cls, value: dict[str, Any]) -> Account:
         if value.get("test_account") is not True:
             raise ConfigurationError(
                 f"Account {value.get('name', '<unnamed>')!r} must set test_account=true"
@@ -70,7 +74,7 @@ class ProductRule:
     preferred_size: str | None = None
 
     @classmethod
-    def from_dict(cls, value: dict[str, Any]) -> "ProductRule":
+    def from_dict(cls, value: dict[str, Any]) -> ProductRule:
         quantity = int(value.get("quantity", 1))
         if not 1 <= quantity <= 10:
             raise ConfigurationError("Product quantity must be between 1 and 10")
@@ -113,7 +117,7 @@ class Config:
         return (urlparse(self.base_url).hostname or "").lower()
 
     @classmethod
-    def load(cls, path: str | Path) -> "Config":
+    def load(cls, path: str | Path) -> Config:
         with Path(path).open("r", encoding="utf-8") as handle:
             raw = json.load(handle)
 
@@ -136,11 +140,26 @@ class Config:
                 bot_token=str(telegram.get("bot_token", "")),
                 chat_id=str(telegram.get("chat_id", "")),
             ),
-            monitor_interval_seconds=max(2.0, float(raw.get("monitor_interval_seconds", 10))),
-            max_concurrency=max(1, min(int(raw.get("max_concurrency", 20)), 100)),
-            requests_per_second=max(0.5, min(float(raw.get("requests_per_second", 25)), 200)),
-            max_orders_per_account=max(1, min(int(raw.get("max_orders_per_account", 5)), 50)),
-            request_timeout_seconds=max(5.0, float(raw.get("request_timeout_seconds", 20))),
+            monitor_interval_seconds=max(
+                2.0,
+                float(raw.get("monitor_interval_seconds", 10)),
+            ),
+            max_concurrency=max(
+                1,
+                min(int(raw.get("max_concurrency", 20)), 100),
+            ),
+            requests_per_second=max(
+                0.5,
+                min(float(raw.get("requests_per_second", 25)), 200),
+            ),
+            max_orders_per_account=max(
+                1,
+                min(int(raw.get("max_orders_per_account", 5)), 50),
+            ),
+            request_timeout_seconds=max(
+                5.0,
+                float(raw.get("request_timeout_seconds", 20)),
+            ),
             database_path=str(raw.get("database_path", "order_log.db")),
             session_dir=str(raw.get("session_dir", "sessions")),
             log_dir=str(raw.get("log_dir", "logs")),
@@ -159,7 +178,9 @@ class Config:
                 f"Target host {self.target_host!r} is not present in allowed_hosts"
             )
         if self.target_host in BLOCKED_LIVE_HOSTS:
-            raise ConfigurationError("Live third-party commerce hosts are intentionally blocked")
+            raise ConfigurationError(
+                "Live third-party commerce hosts are intentionally blocked"
+            )
         if not self.accounts:
             raise ConfigurationError("At least one test account is required")
         if not self.products:
