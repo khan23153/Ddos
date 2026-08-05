@@ -1,0 +1,20 @@
+services:
+  mock-store:
+    build: .
+    command: ["flash-sale-mock-store", "--host", "0.0.0.0", "--port", "8080"]
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  harness:
+    build: .
+    depends_on:
+      mock-store:
+        condition: service_healthy
+    command: ["flash-sale-qa", "--config", "/app/config.docker.json", "--run-seconds", "15"]
+    volumes:
+      - ./config.docker.json:/app/config.docker.json:ro

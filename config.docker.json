@@ -1,0 +1,36 @@
+{
+  "base_url": "http://mock-store:8080",
+  "allowed_hosts": ["mock-store"],
+  "dry_run": true,
+  "monitor_interval_seconds": 3,
+  "max_concurrency": 5,
+  "requests_per_second": 20,
+  "max_orders_per_account": 2,
+  "coupons": ["EXTRA20", "FLASH50", "SAVE100"],
+  "telegram": {"bot_token": "", "chat_id": ""},
+  "accounts": [
+    {
+      "name": "docker-qa-001",
+      "phone": "9000000001",
+      "test_account": true,
+      "address": {
+        "name": "Docker QA",
+        "line1": "Container Test Address",
+        "city": "Mumbai",
+        "state": "Maharashtra",
+        "postal_code": "400001",
+        "phone": "9000000001"
+      }
+    }
+  ],
+  "products": [
+    {
+      "id": "sku-1",
+      "path": "/api/test/products/sku-1",
+      "target_price": 1000,
+      "target_discount": 50,
+      "quantity": 1,
+      "preferred_size": "M"
+    }
+  ]
+}
