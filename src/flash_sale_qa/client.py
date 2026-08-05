@@ -7,7 +7,7 @@ from urllib.parse import urljoin, urlparse
 
 import aiohttp
 
-from .config import Config
+from .config import Config, normalize_host
 from .errors import ApiError
 from .logging_utils import log_event
 from .rate_limit import SlidingWindowRateLimiter
@@ -28,7 +28,7 @@ class StagingClient:
 
     def absolute_url(self, path_or_url: str) -> str:
         url = urljoin(self.config.base_url, path_or_url)
-        host = (urlparse(url).hostname or "").lower()
+        host = normalize_host(urlparse(url).hostname or "")
         if host not in self.config.allowed_hosts:
             raise ApiError(f"Request host {host!r} is not allowlisted")
         return url
