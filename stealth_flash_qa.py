@@ -6,16 +6,20 @@ not hide automation, bypass verification, defeat anti-bot controls, or target
 third-party production stores.
 """
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "src"
 if SRC.exists():
     sys.path.insert(0, str(SRC))
 
-from flash_sale_qa.cli import main
+
+def run() -> int:
+    from flash_sale_qa.cli import main
+
+    return main()
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run())
