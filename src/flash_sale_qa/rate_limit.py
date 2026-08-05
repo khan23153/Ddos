@@ -2,23 +2,19 @@ from __future__ import annotations
 
 import asyncio
 import time
-from collections import deque
 
 
 class SlidingWindowRateLimiter:
     def __init__(self, requests_per_second: float) -> None:
-        self.limit = max(1, int(requests_per_second))
-        self.timestamps: deque[float] = deque()
+        self.interval = 1.0 / max(0.001, requests_per_second)
+        self.next_allowed = 0.0
         self.lock = asyncio.Lock()
 
     async def acquire(self) -> None:
-        while True:
-            async with self.lock:
+        async with self.lock:
+            now = time.monotonic()
+            delay = max(0.0, self.next_allowed - now)
+            if delay:
+                await asyncio.sleep(delay)
                 now = time.monotonic()
-                while self.timestamps and now - self.timestamps[0] >= 1.0:
-                    self.timestamps.popleft()
-                if len(self.timestamps) < self.limit:
-                    self.timestamps.append(now)
-                    return
-                delay = 1.0 - (now - self.timestamps[0])
-            await asyncio.sleep(max(0.01, delay))
+            self.next_allowed = max(now, self.next_allowed) + self.interval
