@@ -20,6 +20,10 @@ BLOCKED_LIVE_HOSTS = {
 }
 
 
+def normalize_host(value: str) -> str:
+    return value.strip().lower().rstrip(".")
+
+
 @dataclasses.dataclass(frozen=True, slots=True)
 class Address:
     name: str
@@ -114,7 +118,7 @@ class Config:
 
     @property
     def target_host(self) -> str:
-        return (urlparse(self.base_url).hostname or "").lower()
+        return normalize_host(urlparse(self.base_url).hostname or "")
 
     @classmethod
     def load(cls, path: str | Path) -> Config:
@@ -125,7 +129,7 @@ class Config:
         config = cls(
             base_url=str(raw["base_url"]).rstrip("/") + "/",
             allowed_hosts=frozenset(
-                str(host).lower()
+                normalize_host(str(host))
                 for host in raw.get("allowed_hosts", ["127.0.0.1", "localhost"])
             ),
             dry_run=bool(raw.get("dry_run", True)),
