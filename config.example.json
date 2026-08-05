@@ -13,7 +13,9 @@
   "coupons": ["EXTRA20", "FLASH50", "SAVE100"],
   "telegram": {
     "bot_token": "",
-    "chat_id": ""
+    "chat_id": "",
+    "command_bot_enabled": false,
+    "poll_timeout_seconds": 20
   },
   "accounts": [
     {
