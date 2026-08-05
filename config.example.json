@@ -1,0 +1,60 @@
+{
+  "base_url": "http://127.0.0.1:8080",
+  "allowed_hosts": ["127.0.0.1", "localhost", "staging.shop.example"],
+  "dry_run": true,
+  "monitor_interval_seconds": 10,
+  "max_concurrency": 20,
+  "requests_per_second": 25,
+  "max_orders_per_account": 5,
+  "request_timeout_seconds": 20,
+  "database_path": "order_log.db",
+  "session_dir": "sessions",
+  "log_dir": "logs",
+  "coupons": ["EXTRA20", "FLASH50", "SAVE100"],
+  "telegram": {
+    "bot_token": "",
+    "chat_id": ""
+  },
+  "accounts": [
+    {
+      "name": "qa-account-001",
+      "phone": "9000000001",
+      "test_account": true,
+      "address": {
+        "name": "QA User",
+        "line1": "Test Address 1",
+        "line2": "Staging Environment",
+        "city": "Mumbai",
+        "state": "Maharashtra",
+        "postal_code": "400001",
+        "country": "IN",
+        "phone": "9000000001"
+      }
+    },
+    {
+      "name": "qa-account-002",
+      "phone": "9000000002",
+      "test_account": true,
+      "address": {
+        "name": "QA User Two",
+        "line1": "Test Address 2",
+        "line2": "Staging Environment",
+        "city": "Bengaluru",
+        "state": "Karnataka",
+        "postal_code": "560001",
+        "country": "IN",
+        "phone": "9000000002"
+      }
+    }
+  ],
+  "products": [
+    {
+      "id": "sku-1",
+      "path": "/api/test/products/sku-1",
+      "target_price": 1000,
+      "target_discount": 50,
+      "quantity": 1,
+      "preferred_size": "M"
+    }
+  ]
+}
