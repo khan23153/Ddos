@@ -19,6 +19,7 @@ from .logging_utils import configure_logging, log_event
 from .notifier import TelegramNotifier
 from .rate_limit import SlidingWindowRateLimiter
 from .storage import OrderStore, SessionStore
+from .telegram_bot import TelegramCommandBot
 from .workflow import AccountWorkflow
 
 
@@ -97,15 +98,32 @@ async def async_main(args: argparse.Namespace) -> int:
             logger,
             stop_event,
         )
+        telegram_bot = TelegramCommandBot(
+            config,
+            session,
+            logger,
+            stop_event,
+            harness.trigger_product,
+            harness.status_text,
+        )
+
         timer = None
         if args.run_seconds > 0:
             timer = asyncio.create_task(stop_after(args.run_seconds, stop_event))
+        bot_task = asyncio.create_task(
+            telegram_bot.run(),
+            name="telegram-command-bot",
+        )
         try:
             await harness.run()
         finally:
             if timer:
                 timer.cancel()
-                await asyncio.gather(timer, return_exceptions=True)
+            bot_task.cancel()
+            await asyncio.gather(
+                *(task for task in (timer, bot_task) if task is not None),
+                return_exceptions=True,
+            )
     return 0
 
 

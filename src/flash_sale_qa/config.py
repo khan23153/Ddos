@@ -96,6 +96,8 @@ class ProductRule:
 class TelegramConfig:
     bot_token: str = ""
     chat_id: str = ""
+    command_bot_enabled: bool = False
+    poll_timeout_seconds: int = 20
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -143,6 +145,11 @@ class Config:
             telegram=TelegramConfig(
                 bot_token=str(telegram.get("bot_token", "")),
                 chat_id=str(telegram.get("chat_id", "")),
+                command_bot_enabled=bool(telegram.get("command_bot_enabled", False)),
+                poll_timeout_seconds=max(
+                    1,
+                    min(int(telegram.get("poll_timeout_seconds", 20)), 50),
+                ),
             ),
             monitor_interval_seconds=max(
                 2.0,
@@ -189,3 +196,9 @@ class Config:
             raise ConfigurationError("At least one test account is required")
         if not self.products:
             raise ConfigurationError("At least one product rule is required")
+        if self.telegram.command_bot_enabled and (
+            not self.telegram.bot_token or not self.telegram.chat_id
+        ):
+            raise ConfigurationError(
+                "Telegram command bot requires bot_token and chat_id"
+            )

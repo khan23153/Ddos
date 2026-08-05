@@ -32,6 +32,7 @@ class FlashSaleHarness:
         self.account_locks = {
             account.name: asyncio.Lock() for account in config.accounts
         }
+        self.products = {product.id: product for product in config.products}
         self.active_products: set[str] = set()
         self.active_lock = asyncio.Lock()
         self.blitz_tasks: set[asyncio.Task[None]] = set()
@@ -39,6 +40,57 @@ class FlashSaleHarness:
     def _track_blitz(self, task: asyncio.Task[None]) -> None:
         self.blitz_tasks.add(task)
         task.add_done_callback(self.blitz_tasks.discard)
+
+    def status_text(self) -> str:
+        state = "stopping" if self.stop_event.is_set() else "running"
+        active = ", ".join(sorted(self.active_products)) or "none"
+        return (
+            "Flash Sale QA Harness\n"
+            f"State: {state}\n"
+            f"Dry run: {self.config.dry_run}\n"
+            f"Accounts: {len(self.config.accounts)}\n"
+            f"Products: {len(self.config.products)}\n"
+            f"Active blitzes: {active}"
+        )
+
+    async def trigger_product(self, product_id: str) -> str:
+        rule = self.products.get(product_id)
+        if rule is None:
+            available = ", ".join(sorted(self.products))
+            return f"Unknown product {product_id!r}. Available: {available}"
+        if self.stop_event.is_set():
+            return "Harness is stopping; trigger rejected."
+
+        async with self.active_lock:
+            if product_id in self.active_products:
+                return f"Blitz for {product_id} is already active."
+            self.active_products.add(product_id)
+
+        try:
+            product = await with_retry(
+                lambda: self.client.request("GET", rule.path),
+                logger=self.logger,
+                event="telegram_trigger_retry",
+            )
+        except Exception:
+            async with self.active_lock:
+                self.active_products.discard(product_id)
+            raise
+
+        if product.get("in_stock") is not True:
+            async with self.active_lock:
+                self.active_products.discard(product_id)
+            return f"{product_id} is out of stock in the staging API."
+
+        task = asyncio.create_task(
+            self.trigger_blitz(rule, product),
+            name=f"telegram-blitz:{rule.id}",
+        )
+        self._track_blitz(task)
+        return (
+            f"Staging blitz started for {product_id}. "
+            f"Dry run: {self.config.dry_run}."
+        )
 
     async def monitor_product(self, rule: ProductRule) -> None:
         while not self.stop_event.is_set():
