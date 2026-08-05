@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import os
 import sqlite3
@@ -41,10 +42,8 @@ class SessionStore:
 
     async def invalidate(self, account_name: str) -> None:
         path = self._path(account_name)
-        try:
+        with contextlib.suppress(FileNotFoundError):
             await asyncio.to_thread(path.unlink)
-        except FileNotFoundError:
-            pass
 
 
 class OrderStore:
