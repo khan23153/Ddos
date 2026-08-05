@@ -29,6 +29,9 @@ class FlashSaleHarness:
         self.logger = logger
         self.stop_event = stop_event
         self.semaphore = asyncio.Semaphore(config.max_concurrency)
+        self.account_locks = {
+            account.name: asyncio.Lock() for account in config.accounts
+        }
         self.active_products: set[str] = set()
         self.active_lock = asyncio.Lock()
         self.blitz_tasks: set[asyncio.Task[None]] = set()
@@ -89,8 +92,11 @@ class FlashSaleHarness:
     async def run_account(self, account: Account, rule: ProductRule) -> None:
         if self.stop_event.is_set():
             return
-        async with self.semaphore:
-            await self.workflow.execute_order(account, rule)
+        async with self.account_locks[account.name]:
+            if self.stop_event.is_set():
+                return
+            async with self.semaphore:
+                await self.workflow.execute_order(account, rule)
 
     async def trigger_blitz(self, rule: ProductRule, product: dict) -> None:
         try:
