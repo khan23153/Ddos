@@ -8,7 +8,7 @@ import json
 import os
 import signal
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import aiohttp
 
@@ -119,7 +119,7 @@ def main() -> int:
         print(
             json.dumps(
                 {
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "level": "CRITICAL",
                     "event": "startup_failure",
                     "message": str(error),
