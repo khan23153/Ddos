@@ -31,6 +31,11 @@ class FlashSaleHarness:
         self.semaphore = asyncio.Semaphore(config.max_concurrency)
         self.active_products: set[str] = set()
         self.active_lock = asyncio.Lock()
+        self.blitz_tasks: set[asyncio.Task[None]] = set()
+
+    def _track_blitz(self, task: asyncio.Task[None]) -> None:
+        self.blitz_tasks.add(task)
+        task.add_done_callback(self.blitz_tasks.discard)
 
     async def monitor_product(self, rule: ProductRule) -> None:
         while not self.stop_event.is_set():
@@ -58,10 +63,11 @@ class FlashSaleHarness:
                     async with self.active_lock:
                         if rule.id not in self.active_products:
                             self.active_products.add(rule.id)
-                            asyncio.create_task(
+                            task = asyncio.create_task(
                                 self.trigger_blitz(rule, product),
                                 name=f"blitz:{rule.id}",
                             )
+                            self._track_blitz(task)
             except asyncio.CancelledError:
                 raise
             except Exception as error:
@@ -132,6 +138,11 @@ class FlashSaleHarness:
         for task in monitors:
             task.cancel()
         await asyncio.gather(*monitors, return_exceptions=True)
+
+        pending = list(self.blitz_tasks)
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
+
         log_event(
             self.logger,
             logging.INFO,
